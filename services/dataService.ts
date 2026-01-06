@@ -1,78 +1,90 @@
 
-import { MarketMetrics, SignalFlag, SignalType } from '../types';
+import { MarketMetrics, SignalFlag, SignalType, TimeFrame } from '../types';
 
-export const generateMockMetrics = (): MarketMetrics[] => {
+export const generateMockMetrics = (timeframe: TimeFrame = 'daily'): MarketMetrics[] => {
   const now = new Date();
-  return Array.from({ length: 7 }).map((_, i) => {
+  let length = 7; // default daily
+  let step = 1; // 1 day steps
+  
+  if (timeframe === 'weekly') {
+    length = 12; // 12 weeks
+    step = 7;
+  } else if (timeframe === 'monthly') {
+    length = 12; // 12 months
+    step = 30;
+  }
+
+  return Array.from({ length }).map((_, i) => {
     const d = new Date(now);
-    d.setDate(d.getDate() - (6 - i));
+    d.setDate(d.getDate() - (length - 1 - i) * step);
+    
+    // Add some trend/volatility to the mock data
+    const trend = i * 200; 
     return {
       timestamp: d.toISOString(),
-      btcPrice: 90000 + Math.random() * 10000,
-      ethPrice: 2500 + Math.random() * 500,
-      btcDominance: 52 + Math.random() * 5,
-      stablecoinCap: 160 + Math.random() * 10,
-      totalTvl: 80 + Math.random() * 20,
-      ethL2Volume: 15 + Math.random() * 5,
-      etfNetFlows: Math.random() * 500 - 100,
-      memeVelocity: Math.random() * 100,
+      btcPrice: 90000 + trend + Math.random() * 5000,
+      ethPrice: 2400 + (trend / 40) + Math.random() * 300,
+      btcDominance: 52 + Math.random() * 2,
+      stablecoinCap: 160 + (i * 0.5),
+      totalTvl: 80 + (i * 1.2),
+      ethL2Volume: 15 + (i * 0.8) + Math.random() * 2,
+      etfNetFlows: Math.random() * 800 - 200,
+      memeVelocity: 40 + Math.random() * 60,
+      tradingVolume: 40 + Math.random() * 40 + (i * 2), // Mock volume in billions
     };
   });
 };
 
 export const detectSignals = (metrics: MarketMetrics[]): SignalFlag[] => {
+  if (metrics.length < 2) return [];
   const latest = metrics[metrics.length - 1];
   const previous = metrics[metrics.length - 2];
   
   const signals: SignalFlag[] = [];
 
-  // Logic: Capital Rotation
-  if (latest.btcDominance < previous.btcDominance - 1) {
+  if (latest.btcDominance < previous.btcDominance - 0.5) {
     signals.push({
       id: 'sig-1',
       type: SignalType.ROTATION,
       severity: 'info',
       title: 'Altcoin Rotation Signal',
-      description: 'BTC dominance dropped by >1% while stablecoin market cap remained steady, suggesting internal capital flow.',
+      description: 'BTC dominance cooling off, suggesting capital moving into high-beta assets.',
       timestamp: new Date().toISOString(),
       source: 'On-chain Dominance Tracking',
     });
   }
 
-  // Logic: ETF Flows
-  if (latest.etfNetFlows > 300) {
+  if (latest.etfNetFlows > 400) {
     signals.push({
       id: 'sig-2',
       type: SignalType.LIQUIDITY_SHIFT,
       severity: 'info',
       title: 'Institutional Inflow Surge',
-      description: 'Daily ETF net flows exceeded $300M, indicating sustained institutional demand.',
+      description: 'Major ETF buy-side pressure detected in the last 24h window.',
       timestamp: new Date().toISOString(),
-      source: 'SEC Filings / Bloomberg Terminals',
+      source: 'SEC Filings / Bloomberg',
     });
   }
 
-  // Logic: Risk Event (Mock)
-  if (Math.random() > 0.7) {
+  if (Math.random() > 0.8) {
     signals.push({
       id: 'sig-3',
       type: SignalType.RISK_EVENT,
       severity: 'warning',
-      title: 'DeFi Bridge Exploit Detected',
-      description: 'Anomalous outbound transactions detected on a cross-chain bridge protocol.',
+      title: 'MEV Relay Latency Warning',
+      description: 'Anomalous block construction patterns detected on major relays.',
       timestamp: new Date().toISOString(),
       source: 'Security Monitor Bot',
     });
   }
 
-  // Logic: Meme Velocity
-  if (latest.memeVelocity > 80) {
+  if (latest.memeVelocity > 85) {
     signals.push({
       id: 'sig-4',
       type: SignalType.SOCIAL_VELOCITY,
       severity: 'critical',
-      title: 'Speculative Social Spike',
-      description: 'Meme coin social velocity is in the top 5th percentile, historical indicator of local tops.',
+      title: 'Social Peak Alert',
+      description: 'Retail engagement metrics hitting extreme overbought territory.',
       timestamp: new Date().toISOString(),
       source: 'Social Intelligence Engine',
     });

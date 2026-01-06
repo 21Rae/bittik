@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MarketMetrics, SignalFlag, NarrativeInsight, GeneratedContent, SignalType } from './types';
+import { MarketMetrics, SignalFlag, NarrativeInsight, GeneratedContent, SignalType, TimeFrame } from './types';
 import { generateMockMetrics, detectSignals } from './services/dataService';
 import { generateNarrative, generateAutomatedContent } from './services/geminiService';
 import { MetricGraph } from './components/MetricGraph';
+import { DetailedCharts } from './components/DetailedCharts';
 
 const App: React.FC = () => {
   const [metrics, setMetrics] = useState<MarketMetrics[]>([]);
@@ -11,12 +12,13 @@ const App: React.FC = () => {
   const [narrative, setNarrative] = useState<NarrativeInsight | null>(null);
   const [contents, setContents] = useState<GeneratedContent[]>([]);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<'dashboard' | 'narratives' | 'generator'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'narratives' | 'generator' | 'visualization'>('dashboard');
+  const [timeframe, setTimeframe] = useState<TimeFrame>('daily');
 
-  const runIngestion = useCallback(async () => {
+  const runIngestion = useCallback(async (tf: TimeFrame = timeframe) => {
     setLoading(true);
     try {
-      const mockMetrics = generateMockMetrics();
+      const mockMetrics = generateMockMetrics(tf);
       const detected = detectSignals(mockMetrics);
       setMetrics(mockMetrics);
       setSignals(detected);
@@ -32,11 +34,16 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeframe]);
 
   useEffect(() => {
     runIngestion();
-  }, [runIngestion]);
+  }, []);
+
+  const handleTimeframeChange = (tf: TimeFrame) => {
+    setTimeframe(tf);
+    runIngestion(tf);
+  };
 
   const SidebarItem = ({ id, label, icon }: { id: typeof view, label: string, icon: string }) => (
     <button 
@@ -71,6 +78,7 @@ const App: React.FC = () => {
         
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" label="MARKET PULSE" icon="📊" />
+          <SidebarItem id="visualization" label="DATA VISUALS" icon="📈" />
           <SidebarItem id="narratives" label="NARRATIVE LAYER" icon="🧠" />
           <SidebarItem id="generator" label="CONTENT ENGINE" icon="✍️" />
         </nav>
@@ -86,7 +94,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <button 
-            onClick={runIngestion}
+            onClick={() => runIngestion()}
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center justify-center space-x-3 group"
           >
@@ -105,12 +113,32 @@ const App: React.FC = () => {
               <span>Secure Session Alpha-7</span>
             </div>
             <h2 className="text-4xl font-extrabold text-white tracking-tight capitalize">
-              {view === 'dashboard' ? 'Market Terminal' : view.replace('_', ' ')}
+              {view === 'dashboard' ? 'Market Terminal' : 
+               view === 'visualization' ? 'Advanced Analytics' :
+               view.replace('_', ' ')}
             </h2>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Last Sync</p>
-            <p className="text-sm font-bold text-slate-300 mono">{new Date().toLocaleTimeString()}</p>
+          
+          <div className="flex flex-col items-end space-y-4">
+            {view === 'visualization' && (
+              <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+                {(['daily', 'weekly', 'monthly'] as TimeFrame[]).map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => handleTimeframeChange(tf)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                      timeframe === tf ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="text-right">
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Last Sync</p>
+              <p className="text-sm font-bold text-slate-300 mono">{new Date().toLocaleTimeString()}</p>
+            </div>
           </div>
         </header>
 
@@ -203,6 +231,12 @@ const App: React.FC = () => {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {view === 'visualization' && (
+              <div className="space-y-10">
+                <DetailedCharts data={metrics} timeframe={timeframe} />
               </div>
             )}
 

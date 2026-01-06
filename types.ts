@@ -7,6 +7,8 @@ export enum SignalType {
   SOCIAL_VELOCITY = 'SOCIAL_VELOCITY'
 }
 
+export type TimeFrame = 'daily' | 'weekly' | 'monthly';
+
 export interface MarketMetrics {
   timestamp: string;
   btcPrice: number;
@@ -17,6 +19,7 @@ export interface MarketMetrics {
   ethL2Volume: number;
   etfNetFlows: number;
   memeVelocity: number;
+  tradingVolume: number; // Added for volume analysis
 }
 
 export interface SignalFlag {
