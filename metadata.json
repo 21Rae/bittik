@@ -1,0 +1,5 @@
+{
+  "name": "EtherSense: Crypto Narrative Intelligence",
+  "description": "An automated platform for crypto market signal detection, narrative generation, and content creation. It turns raw market data into actionable insights, journaling prompts, and professional newsletters using Gemini AI.",
+  "requestFramePermissions": []
+}
